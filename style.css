@@ -292,6 +292,12 @@ body {
   margin: 0.2rem 0;
 }
 
+.forecast-temps {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
 .forecast-temp-max {
   font-size: 1rem;
   font-weight: 700;
@@ -299,6 +305,16 @@ body {
 
 .forecast-temp-min {
   font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.forecast-temp-sep {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.forecast-precip {
+  font-size: 0.8rem;
   color: var(--text-secondary);
 }
 

@@ -64,6 +64,7 @@ const els = {
   condition:    $('condition'),
   windSpeed:    $('windSpeed'),
   humidity:     $('humidity'),
+  currentPrecip: $('currentPrecip'),
   forecast:     $('forecast'),
   forecastCards: $('forecastCards'),
   favToggle:    $('favToggle'),
@@ -178,7 +179,7 @@ async function fetchForecast(lat, lon) {
       `?latitude=${lat}&longitude=${lon}` +
       `&current_weather=true` +
       `&hourly=relativehumidity_2m` +
-      `&daily=temperature_2m_max,temperature_2m_min,weathercode` +
+      `&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_probability_max` +
       `&timezone=auto` +
       `&forecast_days=7`
     );
@@ -290,6 +291,9 @@ function renderCurrent() {
   els.windSpeed.textContent   = `💨 ${Math.round(state.current.windspeed)} km/h`;
   els.humidity.textContent    = `💧 ${state.humidity}%`;
 
+  const todayPrecip = state.daily?.precipitation_probability_max?.[0];
+  els.currentPrecip.textContent = `☔ ${(todayPrecip === null || todayPrecip === undefined) ? '—' : `${todayPrecip}%`}`;
+
   const fav = isFavorited(state.lat, state.lon);
   els.favToggle.textContent = fav ? '★' : '☆';
   els.favToggle.classList.toggle('active', fav);
@@ -321,16 +325,22 @@ function renderForecast() {
   els.forecast.classList.toggle('hidden', !show);
   if (!show) return;
 
-  const { time, temperature_2m_max, temperature_2m_min, weathercode } = state.daily;
+  const { time, temperature_2m_max, temperature_2m_min, weathercode, precipitation_probability_max } = state.daily;
 
   els.forecastCards.innerHTML = time.map((isoDate, i) => {
     const info = getWeatherInfo(weathercode[i]);
+    const p = precipitation_probability_max?.[i];
+    const precipText = (p === null || p === undefined) ? '—' : `${p}%`;
     return `
       <div class="forecast-card">
         <span class="forecast-day">${getDayLabel(isoDate)}</span>
         <span class="forecast-icon">${info.emoji}</span>
-        <span class="forecast-temp-max">${formatTemp(temperature_2m_max[i])}</span>
-        <span class="forecast-temp-min">${formatTemp(temperature_2m_min[i])}</span>
+        <div class="forecast-temps">
+          <span class="forecast-temp-min">${formatTemp(temperature_2m_min[i])}</span>
+          <span class="forecast-temp-sep">-</span>
+          <span class="forecast-temp-max">${formatTemp(temperature_2m_max[i])}</span>
+        </div>
+        <span class="forecast-precip">☔ ${precipText}</span>
       </div>
     `;
   }).join('');
