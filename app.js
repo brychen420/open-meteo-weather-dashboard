@@ -33,13 +33,19 @@ const WMO_CODES = {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
+const FAVORITES_KEY = 'weather-dashboard-favorites';
+
 const state = {
   cityLabel: null,
+  lat:       null,
+  lon:       null,
   current:   null,
   humidity:  null,
   daily:     null,
   isLoading: false,
   error:     null,
+  favorites: [],     // [{ label, lat, lon }]
+  panelOpen: false,
 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
@@ -60,6 +66,12 @@ const els = {
   humidity:     $('humidity'),
   forecast:     $('forecast'),
   forecastCards: $('forecastCards'),
+  favToggle:    $('favToggle'),
+  menuBtn:      $('menuBtn'),
+  favBackdrop:  $('favBackdrop'),
+  favPanel:     $('favPanel'),
+  favCloseBtn:  $('favCloseBtn'),
+  favList:      $('favList'),
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -82,6 +94,55 @@ function getDayLabel(isoDate) {
     d.getFullYear() === today.getFullYear()
   ) return 'Today';
   return days[d.getDay()];
+}
+
+// Coordinate identity key (rounded to avoid float mismatch)
+function coordKey(lat, lon) {
+  return `${lat.toFixed(2)},${lon.toFixed(2)}`;
+}
+
+// ── Favorites persistence ──────────────────────────────────────────────────────
+
+function loadFavorites() {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavorites() {
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites));
+  } catch {
+    /* storage unavailable (private mode / quota) — favorites stay in-memory */
+  }
+}
+
+function isFavorited(lat, lon) {
+  if (lat === null || lon === null) return false;
+  const key = coordKey(lat, lon);
+  return state.favorites.some(f => coordKey(f.lat, f.lon) === key);
+}
+
+function toggleFavorite() {
+  if (state.lat === null || state.lon === null) return;
+  const key = coordKey(state.lat, state.lon);
+  if (isFavorited(state.lat, state.lon)) {
+    state.favorites = state.favorites.filter(f => coordKey(f.lat, f.lon) !== key);
+  } else {
+    state.favorites.push({ label: state.cityLabel, lat: state.lat, lon: state.lon });
+  }
+  saveFavorites();
+  render();
+}
+
+function removeFavorite(key) {
+  state.favorites = state.favorites.filter(f => coordKey(f.lat, f.lon) !== key);
+  saveFavorites();
+  render();
 }
 
 // ── API calls ─────────────────────────────────────────────────────────────────
@@ -158,6 +219,35 @@ async function fetchWeather(cityQuery) {
     const wx  = await fetchForecast(geo.lat, geo.lon);
 
     state.cityLabel = geo.cityLabel;
+    state.lat       = geo.lat;
+    state.lon       = geo.lon;
+    state.current   = wx.current;
+    state.humidity  = wx.humidity;
+    state.daily     = wx.daily;
+  } catch (err) {
+    state.error   = err;
+    state.current = null;
+    state.daily   = null;
+  } finally {
+    state.isLoading = false;
+    render();
+  }
+}
+
+// Load a saved favorite by stored coords — skips geocoding, reuses fetchForecast.
+async function loadFavorite(fav) {
+  state.panelOpen = false;
+  state.isLoading = true;
+  state.error     = null;
+  state.current   = null;
+  state.daily     = null;
+  render();
+
+  try {
+    const wx = await fetchForecast(fav.lat, fav.lon);
+    state.cityLabel = fav.label;
+    state.lat       = fav.lat;
+    state.lon       = fav.lon;
     state.current   = wx.current;
     state.humidity  = wx.humidity;
     state.daily     = wx.daily;
@@ -199,6 +289,31 @@ function renderCurrent() {
   els.condition.textContent   = info.label;
   els.windSpeed.textContent   = `💨 ${Math.round(state.current.windspeed)} km/h`;
   els.humidity.textContent    = `💧 ${state.humidity}%`;
+
+  const fav = isFavorited(state.lat, state.lon);
+  els.favToggle.textContent = fav ? '★' : '☆';
+  els.favToggle.classList.toggle('active', fav);
+}
+
+function renderFavList() {
+  if (state.favorites.length === 0) {
+    els.favList.innerHTML = '<p class="fav-empty">No favorites yet.</p>';
+    return;
+  }
+  els.favList.innerHTML = state.favorites.map(f => {
+    const key = coordKey(f.lat, f.lon);
+    return `
+      <div class="fav-row" data-key="${key}">
+        <span class="fav-row-name">${f.label}</span>
+        <button class="fav-remove" data-key="${key}" aria-label="Remove favorite">×</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderPanel() {
+  els.favPanel.classList.toggle('open', state.panelOpen);
+  els.favBackdrop.classList.toggle('hidden', !state.panelOpen);
 }
 
 function renderForecast() {
@@ -226,6 +341,8 @@ function render() {
   renderError();
   renderCurrent();
   renderForecast();
+  renderFavList();
+  renderPanel();
 }
 
 // ── Event handling ────────────────────────────────────────────────────────────
@@ -240,9 +357,37 @@ function handleSearch() {
   fetchWeather(city);
 }
 
+function setPanel(open) {
+  state.panelOpen = open;
+  render();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  state.favorites = loadFavorites();
+
   els.form.addEventListener('submit', e => {
     e.preventDefault();
     handleSearch();
   });
+
+  els.favToggle.addEventListener('click', toggleFavorite);
+  els.menuBtn.addEventListener('click', () => setPanel(!state.panelOpen));
+  els.favCloseBtn.addEventListener('click', () => setPanel(false));
+  els.favBackdrop.addEventListener('click', () => setPanel(false));
+
+  // Event delegation: distinguish remove button from row click.
+  els.favList.addEventListener('click', e => {
+    const removeBtn = e.target.closest('.fav-remove');
+    if (removeBtn) {
+      removeFavorite(removeBtn.dataset.key);
+      return;
+    }
+    const row = e.target.closest('.fav-row');
+    if (row) {
+      const fav = state.favorites.find(f => coordKey(f.lat, f.lon) === row.dataset.key);
+      if (fav) loadFavorite(fav);
+    }
+  });
+
+  render();
 });

@@ -18,6 +18,7 @@
   --error-bg:       rgba(239, 68, 68, 0.15);
   --error-border:   rgba(239, 68, 68, 0.4);
   --error-text:     #fca5a5;
+  --star:           #fbbf24;
   --radius-card:    18px;
   --radius-input:   12px;
   --shadow:         0 8px 32px rgba(0, 0, 0, 0.45);
@@ -166,6 +167,7 @@ body {
   align-items: center;
   gap: 0.4rem;
   animation: fadeIn 0.4s ease;
+  position: relative;
 }
 
 .current-location {
@@ -298,6 +300,172 @@ body {
 .forecast-temp-min {
   font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+/* ── Favorite toggle (on current-weather card) ── */
+
+.fav-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: transform var(--transition), color var(--transition);
+}
+
+.fav-toggle:hover {
+  transform: scale(1.15);
+}
+
+.fav-toggle.active {
+  color: var(--star);
+}
+
+/* ── Menu button ── */
+
+.menu-btn {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 30;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), transform var(--transition);
+}
+
+.menu-btn:hover {
+  background: var(--surface-hover);
+  transform: scale(1.05);
+}
+
+/* ── Favorites panel + backdrop ── */
+
+.fav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.25s ease;
+}
+
+.fav-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 50;
+  width: 300px;
+  max-width: 85vw;
+  height: 100%;
+  background: rgba(20, 18, 45, 0.92);
+  backdrop-filter: blur(24px);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1.25rem;
+  gap: 1rem;
+}
+
+.fav-panel.open {
+  transform: translateX(0);
+}
+
+.fav-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fav-panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.fav-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.fav-close-btn:hover {
+  color: var(--text-primary);
+}
+
+.fav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+}
+
+.fav-empty {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.fav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-input);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.fav-row:hover {
+  background: var(--surface-hover);
+}
+
+.fav-row-name {
+  font-size: 0.92rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-remove {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  flex-shrink: 0;
+  transition: color var(--transition);
+}
+
+.fav-remove:hover {
+  color: var(--error-text);
 }
 
 /* ── noscript ── */

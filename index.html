@@ -7,6 +7,18 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <button class="menu-btn" id="menuBtn" aria-label="Open favorites menu">☰</button>
+
+  <div class="fav-backdrop hidden" id="favBackdrop"></div>
+
+  <aside class="fav-panel" id="favPanel" aria-label="Favorite cities">
+    <div class="fav-panel-header">
+      <h2 class="fav-panel-title">Favorites</h2>
+      <button class="fav-close-btn" id="favCloseBtn" aria-label="Close favorites menu">×</button>
+    </div>
+    <div class="fav-list" id="favList"></div>
+  </aside>
+
   <div class="app-wrapper">
 
     <header class="site-header">
@@ -31,6 +43,7 @@
     </div>
 
     <section class="current-weather hidden" id="currentWeather">
+      <button class="fav-toggle" id="favToggle" aria-label="Toggle favorite"></button>
       <div class="current-location" id="cityName"></div>
       <div class="current-icon" id="weatherIcon"></div>
       <div class="current-temp" id="temperature"></div>
