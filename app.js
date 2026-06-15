@@ -235,9 +235,8 @@ async function fetchWeather(cityQuery) {
   }
 }
 
-// Load a saved favorite by stored coords — skips geocoding, reuses fetchForecast.
-async function loadFavorite(fav) {
-  state.panelOpen = false;
+// Load weather by coordinates with a given label — skips geocoding, reuses fetchForecast.
+async function loadByCoords(lat, lon, label) {
   state.isLoading = true;
   state.error     = null;
   state.current   = null;
@@ -245,10 +244,10 @@ async function loadFavorite(fav) {
   render();
 
   try {
-    const wx = await fetchForecast(fav.lat, fav.lon);
-    state.cityLabel = fav.label;
-    state.lat       = fav.lat;
-    state.lon       = fav.lon;
+    const wx = await fetchForecast(lat, lon);
+    state.cityLabel = label;
+    state.lat       = lat;
+    state.lon       = lon;
     state.current   = wx.current;
     state.humidity  = wx.humidity;
     state.daily     = wx.daily;
@@ -260,6 +259,23 @@ async function loadFavorite(fav) {
     state.isLoading = false;
     render();
   }
+}
+
+// Load a saved favorite — closes the panel, then loads by its stored coords.
+function loadFavorite(fav) {
+  state.panelOpen = false;
+  return loadByCoords(fav.lat, fav.lon, fav.label);
+}
+
+// On page load, try the browser Geolocation API. Any failure is silent —
+// the UI simply stays on the initial empty search prompt.
+function geolocateOnLoad() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => loadByCoords(pos.coords.latitude, pos.coords.longitude, 'My Location'),
+    () => { /* denied / unavailable / timeout — silent fallback */ },
+    { timeout: 10000 }
+  );
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -400,4 +416,5 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   render();
+  geolocateOnLoad();
 });
