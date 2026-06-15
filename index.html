@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-wrapper">
+
+    <header class="site-header">
+      <h1 class="site-title">⛅ Weather Dashboard</h1>
+      <form class="search-form" id="searchForm">
+        <input
+          type="text"
+          id="cityInput"
+          class="search-input"
+          placeholder="Enter city name…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button type="submit" class="search-btn" id="searchBtn">Search</button>
+      </form>
+      <p class="error-message hidden" id="errorMsg" role="alert"></p>
+    </header>
+
+    <div class="loader hidden" id="loader" aria-live="polite">
+      <div class="spinner"></div>
+      <p class="loader-text">Fetching weather…</p>
+    </div>
+
+    <section class="current-weather hidden" id="currentWeather">
+      <div class="current-location" id="cityName"></div>
+      <div class="current-icon" id="weatherIcon"></div>
+      <div class="current-temp" id="temperature"></div>
+      <div class="current-condition" id="condition"></div>
+      <div class="weather-meta">
+        <span class="meta-item" id="windSpeed"></span>
+        <span class="meta-divider"></span>
+        <span class="meta-item" id="humidity"></span>
+      </div>
+    </section>
+
+    <section class="forecast hidden" id="forecast">
+      <h2 class="forecast-heading">7-Day Forecast</h2>
+      <div class="forecast-cards" id="forecastCards"></div>
+    </section>
+
+  </div>
+
+  <noscript>
+    <p class="noscript-msg">JavaScript is required to use this weather dashboard.</p>
+  </noscript>
+
+  <script defer src="app.js"></script>
+</body>
+</html>
