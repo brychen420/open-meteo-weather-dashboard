@@ -35,7 +35,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem 1rem 4rem;
+  /* Respect iOS safe areas (notch / Dynamic Island / home indicator) in
+     standalone PWA mode; insets are 0 on browsers without them. */
+  padding-top:    calc(2rem + env(safe-area-inset-top));
+  padding-right:  calc(1rem + env(safe-area-inset-right));
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  padding-left:   calc(1rem + env(safe-area-inset-left));
 }
 
 .app-wrapper {
@@ -304,6 +309,7 @@ body {
 .forecast-card {
   flex: 1 0 0;
   min-width: 90px;
+  max-width: 100%;
   background: var(--surface);
   backdrop-filter: blur(16px);
   border: 1px solid var(--border);
@@ -338,8 +344,9 @@ body {
 
 .forecast-temps {
   display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
 }
 
 .forecast-temp-max {
@@ -352,14 +359,10 @@ body {
   color: var(--text-secondary);
 }
 
-.forecast-temp-sep {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
 .forecast-precip {
   font-size: 0.8rem;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 /* ── Favorite toggle (on current-weather card) ── */
@@ -389,8 +392,8 @@ body {
 
 .menu-btn {
   position: fixed;
-  top: 1.25rem;
-  right: 1.25rem;
+  top: calc(1.25rem + env(safe-area-inset-top));
+  right: calc(1.25rem + env(safe-area-inset-right));
   z-index: 30;
   width: 44px;
   height: 44px;

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgDiag" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f0c29"/>
+      <stop offset="0.5" stop-color="#302b63"/>
+      <stop offset="1" stop-color="#24243e"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd55a"/>
+      <stop offset="1" stop-color="#f7a81b"/>
+    </linearGradient>
+    <linearGradient id="cloud" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#d4dcf0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bgDiag)"/>
+  <circle cx="300" cy="208" r="92" fill="url(#sun)"/>
+  <path fill="url(#cloud)" d="M150 388a72 72 0 0 1 6-143 96 96 0 0 1 186 18 62 62 0 0 1-16 125z"/>
+</svg>
