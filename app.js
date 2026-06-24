@@ -46,6 +46,9 @@ const state = {
   error:     null,
   favorites: [],     // [{ label, lat, lon }]
   panelOpen: false,
+  suggestions:     [],   // [{ label, lat, lon }]
+  suggestionsOpen: false,
+  activeSuggestion: -1,   // index of keyboard-highlighted row, -1 = none
 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
@@ -73,6 +76,7 @@ const els = {
   favPanel:     $('favPanel'),
   favCloseBtn:  $('favCloseBtn'),
   favList:      $('favList'),
+  suggestions:  $('suggestions'),
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -100,6 +104,12 @@ function getDayLabel(isoDate) {
 // Coordinate identity key (rounded to avoid float mismatch)
 function coordKey(lat, lon) {
   return `${lat.toFixed(2)},${lon.toFixed(2)}`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
 }
 
 // ── Favorites persistence ──────────────────────────────────────────────────────
@@ -169,6 +179,26 @@ async function geocode(city) {
 
   const { latitude, longitude, name, country } = data.results[0];
   return { lat: latitude, lon: longitude, cityLabel: `${name}, ${country}` };
+}
+
+// Autocomplete suggestions — like geocode() but returns multiple matches.
+// Fails silently (returns []) so live typing never surfaces an error card.
+async function geocodeSuggest(query) {
+  try {
+    const res = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=8&language=en&format=json`
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.results) return [];
+    return data.results.map(r => ({
+      label: r.country ? `${r.name}, ${r.country}` : r.name,
+      lat:   r.latitude,
+      lon:   r.longitude,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 async function fetchForecast(lat, lon) {
@@ -264,6 +294,9 @@ async function loadByCoords(lat, lon, label) {
 // Load a saved favorite — closes the panel, then loads by its stored coords.
 function loadFavorite(fav) {
   state.panelOpen = false;
+  state.suggestions = [];
+  state.suggestionsOpen = false;
+  state.activeSuggestion = -1;
   return loadByCoords(fav.lat, fav.lon, fav.label);
 }
 
@@ -336,6 +369,21 @@ function renderPanel() {
   els.favBackdrop.classList.toggle('hidden', !state.panelOpen);
 }
 
+function renderSuggestions() {
+  const show = state.suggestionsOpen && state.suggestions.length > 0;
+  els.suggestions.classList.toggle('hidden', !show);
+  els.input.setAttribute('aria-expanded', show ? 'true' : 'false');
+  if (!show) {
+    els.suggestions.innerHTML = '';
+    return;
+  }
+  els.suggestions.innerHTML = state.suggestions.map((s, i) => {
+    const active = i === state.activeSuggestion;
+    return `<li class="suggestion-item${active ? ' active' : ''}" role="option" ` +
+      `data-idx="${i}" aria-selected="${active}">${escapeHtml(s.label)}</li>`;
+  }).join('');
+}
+
 function renderForecast() {
   const show = !state.isLoading && state.daily !== null;
   els.forecast.classList.toggle('hidden', !show);
@@ -369,6 +417,7 @@ function render() {
   renderForecast();
   renderFavList();
   renderPanel();
+  renderSuggestions();
 }
 
 // ── Event handling ────────────────────────────────────────────────────────────
@@ -380,6 +429,7 @@ function handleSearch() {
     render();
     return;
   }
+  closeSuggestions();
   fetchWeather(city);
 }
 
@@ -388,12 +438,105 @@ function setPanel(open) {
   render();
 }
 
+// ── Autocomplete handling ──────────────────────────────────────────────────────
+
+const SUGGEST_DEBOUNCE_MS = 250;
+const SUGGEST_MIN_CHARS = 2;
+let suggestTimer = null;
+let suggestQuery = '';   // latest query in flight — guards against stale responses
+
+function closeSuggestions() {
+  state.suggestions = [];
+  state.suggestionsOpen = false;
+  state.activeSuggestion = -1;
+  render();
+}
+
+function handleInput() {
+  const q = els.input.value.trim();
+  clearTimeout(suggestTimer);
+
+  if (q.length < SUGGEST_MIN_CHARS) {
+    closeSuggestions();
+    return;
+  }
+
+  suggestTimer = setTimeout(async () => {
+    suggestQuery = q;
+    const results = await geocodeSuggest(q);
+    // Ignore if the input changed while this request was in flight.
+    if (suggestQuery !== q || els.input.value.trim() !== q) return;
+    state.suggestions = results;
+    state.suggestionsOpen = true;
+    state.activeSuggestion = -1;
+    render();
+  }, SUGGEST_DEBOUNCE_MS);
+}
+
+function selectSuggestion(idx) {
+  const s = state.suggestions[idx];
+  if (!s) return;
+  els.input.value = s.label;
+  suggestQuery = '';            // cancel any pending stale response
+  clearTimeout(suggestTimer);
+  closeSuggestions();
+  loadByCoords(s.lat, s.lon, s.label);
+}
+
+function handleInputKeydown(e) {
+  if (!state.suggestionsOpen || state.suggestions.length === 0) return;
+
+  const last = state.suggestions.length - 1;
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      state.activeSuggestion = state.activeSuggestion >= last ? 0 : state.activeSuggestion + 1;
+      render();
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      state.activeSuggestion = state.activeSuggestion <= 0 ? last : state.activeSuggestion - 1;
+      render();
+      break;
+    case 'Enter':
+      // Only intercept when a row is highlighted; otherwise let the form submit.
+      if (state.activeSuggestion >= 0) {
+        e.preventDefault();
+        selectSuggestion(state.activeSuggestion);
+      }
+      break;
+    case 'Escape':
+      closeSuggestions();
+      break;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   state.favorites = loadFavorites();
 
   els.form.addEventListener('submit', e => {
     e.preventDefault();
     handleSearch();
+  });
+
+  // Autocomplete: live suggestions while typing + keyboard navigation.
+  els.input.addEventListener('input', handleInput);
+  els.input.addEventListener('keydown', handleInputKeydown);
+  els.input.addEventListener('focus', () => {
+    if (state.suggestions.length > 0) {
+      state.suggestionsOpen = true;
+      render();
+    }
+  });
+  // Delay close on blur so a click on a suggestion (mousedown) registers first.
+  els.input.addEventListener('blur', () => setTimeout(closeSuggestions, 120));
+
+  // mousedown (not click) fires before the input's blur, so selection wins.
+  els.suggestions.addEventListener('mousedown', e => {
+    const item = e.target.closest('.suggestion-item');
+    if (!item) return;
+    e.preventDefault();   // keep focus, avoid the blur->close race
+    selectSuggestion(Number(item.dataset.idx));
   });
 
   els.favToggle.addEventListener('click', toggleFavorite);

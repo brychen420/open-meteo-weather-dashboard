@@ -24,14 +24,21 @@
     <header class="site-header">
       <h1 class="site-title">⛅ Weather Dashboard</h1>
       <form class="search-form" id="searchForm">
-        <input
-          type="text"
-          id="cityInput"
-          class="search-input"
-          placeholder="Enter city name…"
-          autocomplete="off"
-          spellcheck="false"
-        />
+        <div class="search-field">
+          <input
+            type="text"
+            id="cityInput"
+            class="search-input"
+            placeholder="Enter city name…"
+            autocomplete="off"
+            spellcheck="false"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            aria-controls="suggestions"
+          />
+          <ul class="suggestions hidden" id="suggestions" role="listbox" aria-label="City suggestions"></ul>
+        </div>
         <button type="submit" class="search-btn" id="searchBtn">Search</button>
       </form>
       <p class="error-message hidden" id="errorMsg" role="alert"></p>
