@@ -400,9 +400,8 @@ function renderForecast() {
         <span class="forecast-day">${getDayLabel(isoDate)}</span>
         <span class="forecast-icon">${info.emoji}</span>
         <div class="forecast-temps">
-          <span class="forecast-temp-min">${formatTemp(temperature_2m_min[i])}</span>
-          <span class="forecast-temp-sep">-</span>
           <span class="forecast-temp-max">${formatTemp(temperature_2m_max[i])}</span>
+          <span class="forecast-temp-min">${formatTemp(temperature_2m_min[i])}</span>
         </div>
         <span class="forecast-precip">☔ ${precipText}</span>
       </div>
