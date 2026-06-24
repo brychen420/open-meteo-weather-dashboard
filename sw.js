@@ -1,7 +1,7 @@
 'use strict';
 
 // Bump this whenever the cached shell assets change — old caches are purged on activate.
-const CACHE_VERSION = 'weather-dashboard-v4';
+const CACHE_VERSION = 'weather-dashboard-v5';
 
 // App shell: everything needed to launch offline. Relative paths so the
 // worker scope stays under the GitHub Pages sub-path.
